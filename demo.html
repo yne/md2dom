@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang=en>
+<link rel="icon" href="data:;base64,iVBORw0KGgo=">
+<script type=module>
+  import m2d from "./md2dom.js";
+  const form = document.forms.demo;
+  (form.oninput = () => form.preview.replaceChildren(...m2d(form.code.value)))();
+</script>
+
+<form name="demo">
+<textarea name="code">
+# Title header
+
+Markdown elements can be split into three groups : inline, block, and section
+
+Let's start with the easiest first
+
+## Inline
+
+this *is* a _sample_ of inline
+[link](https://example.com/) and ![logo](.github/logo.svg)
+even both [![logo](.github/logo.svg)](https://github.com/yne/md2dom)
+
+Automatic link http://example.com and mail test@example.com
+
+## Block
+
+Horizontal rule:
+
+----
+
+double space  
+to breakline
+
+### Multiple level
+#### of headers
+##### with *inline* syntax
+###### support (see:[Inline](#Inline))
+
+## Section
+
+```js
+this is a code block
+with lang=js
+```
+
+> Blockquote with breakline  
+> to have two lines
+> 
+> and two paragraph
+
+- unordered list
+  on multiple line
+- with dash
+* or star
+    - even
+    * sublist
+* back to normal
+
+1. numbered list
+    on multiple line
+
+1. new list because of empty line?
+  
+</textarea>
+<output name="preview"></output>
+</form>
+
+<style>
+  form {
+    display: flex;
+    gap: 10vw;
+  }
+  form > * {flex:1;}
+</style>
