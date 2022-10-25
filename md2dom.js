@@ -13,10 +13,13 @@ const elem = (tag, props = {}, ch = []) => ch.reduce((e, c) => (e.appendChild(c)
 
 function inline_parse(e, txt) {
 	const inline_rules = [
-		[/\*([^\*]+?)\*/g, (e, m) => inline_parse(e.appendChild(elem("strong")), m[1])],
 		[/_([^_]+?)_/g, (e, m) => inline_parse(e.appendChild(elem("em")), m[1])],
+		[/\*([^\*]+?)\*/g, (e, m) => inline_parse(e.appendChild(elem("em")), m[1])],
+		[/__([^_]+?)__/g, (e, m) => inline_parse(e.appendChild(elem("strong")), m[1])],
+		[/\*\*([^\*]+?)\*\*/g, (e, m) => inline_parse(e.appendChild(elem("strong")), m[1])],
 		[/~([^~]+?)~/g, (e, m) => inline_parse(e.appendChild(elem("strike")), m[1])],
 		[/`([^`]+?)`/g, (e, m) => inline_parse(e.appendChild(elem("code")), m[1])],
+		[/``(.+?)``/g, (e, m) => inline_parse(e.appendChild(elem("code")), m[1])],
 		[/\[\s*!\[(.*?)\]\((.+?)\)\s*\]\((.+?)\)/g, (e, m) => (e.appendChild(elem("a", { href: m[3] }, [elem("img", { alt: m[1], src: m[2] })])), m[1])],
 		[/\[\s*(.*?)\s*\]\((.+?)\)/g, (e, m) => inline_parse(e.appendChild(elem("a", { href: m[2] })), m[1])],
 		[/!\[\s*(.*?)\s*\]\((.+?)\)/g, (e, m) => (e.appendChild(elem("img", { alt: m[1], src: m[2] })), m[1])],
@@ -42,13 +45,15 @@ function block_parse(es, line) {
 	}
 	const block_rules = [ // TODO: order by occuring frequency
 		[/^\s*$/, (e) => { while (e.length > 1) e.shift() }],
-		[/^---+$/, ([e]) => e.appendChild(elem("hr"))],
-		[/^# (.*)/, ([e], m) => inline_parse(e.appendChild(elem("h1")), m[1])],
-		[/^## (.*)/, ([e], m) => inline_parse(e.appendChild(elem("h2")), m[1])],
-		[/^### (.*)/, ([e], m) => inline_parse(e.appendChild(elem("h3")), m[1])],
-		[/^#### (.*)/, ([e], m) => inline_parse(e.appendChild(elem("h4")), m[1])],
-		[/^##### (.*)/, ([e], m) => inline_parse(e.appendChild(elem("h5")), m[1])],
-		[/^###### (.*)/, ([e], m) => inline_parse(e.appendChild(elem("h6")), m[1])],
+		[/^ {0,3}---+$/, ([e]) => e.appendChild(elem("hr"))],
+		[/^ {0,3}___+$/, ([e]) => e.appendChild(elem("hr"))],
+		[/^ {0,3}\*\*\*+$/, ([e]) => e.appendChild(elem("hr"))],
+		[/^ {0,3}# (.*?)#* *$/, ([e], m) => inline_parse(e.appendChild(elem("h1")), m[1])],
+		[/^ {0,3}## (.*?)#* *$/, ([e], m) => inline_parse(e.appendChild(elem("h2")), m[1])],
+		[/^ {0,3}### (.*?)#* *$/, ([e], m) => inline_parse(e.appendChild(elem("h3")), m[1])],
+		[/^ {0,3}#### (.*?)#* *$/, ([e], m) => inline_parse(e.appendChild(elem("h4")), m[1])],
+		[/^ {0,3}##### (.*?)#* *$/, ([e], m) => inline_parse(e.appendChild(elem("h5")), m[1])],
+		[/^ {0,3}###### (.*?)#* *$/, ([e], m) => inline_parse(e.appendChild(elem("h6")), m[1])],
 		// TODO: move the following as section rule ?
 		[/^(\s*)[-\*] (.*)/, (e, m) => list(e, m, HTMLUListElement, "ul")],
 		[/^(\s*)\d+\. (.*)/, (e, m) => list(e, m, HTMLOListElement, "ol")],
@@ -69,6 +74,42 @@ function block_parse(es, line) {
 }
 
 export default function section_parse(markdown) {
+	const out = markdown.split(/\n/).reduce((sections, line, i, lines) => {
+		const next = lines[i + 1]||'';
+		if (sections[0].type === null) {
+			if (line.match(/^```(\w*)$/)) sections.unshift({ type: 'code', body: '', opts: line.match(/^```(\w*)$/).slice(1) });
+			else if (line.match(/^ {0,3}>/)) sections.unshift({ type: 'quote', body: '' });
+			else if (line.match(/^ {4,4}|^\t/)) sections.unshift({ type: 'tab', body: '' });
+			else if (line.match(/^ {0,3}\- /)) sections.unshift({ type: 'list-dash', body: ''});
+			else if (line.match(/^ {0,3}\+ /)) sections.unshift({ type: 'list-dash', body: ''});
+			else if (line.match(/^ {0,3}\* /)) sections.unshift({ type: 'list-star', body: ''});
+			else if (line.match(/^ {0,3}\d+\. /)) sections.unshift({ type: 'list-num', body: ''});
+			else if (line.match(/.+[|].+/) && next.match(/-:?|:?-/)) sections.unshift({ type: 'table', body: '' });
+			else sections[0].body += (line + '\n');
+		} else if (sections[0].type === 'code') {
+			if (line.match(/^```$/)) sections.unshift({ type: null, body: '' });
+			else sections[0].body += (line + '\n');
+		} else if (sections[0].type === 'quote') {
+			if (line.match(/^ *[^>]/)) sections.unshift({ type: null, body: '' });
+			else sections[0].body += (line.replace(/^ *>/, '') + '\n');
+		} else if (sections[0].type === 'list-dash' ||
+		           sections[0].type === 'list-star' ||
+				   sections[0].type === 'list-num' ||
+				   sections[0].type === 'list-plus') {
+			// when list is over multiple paragraph => put <p> in each <li> ?
+			if (line.match(/^$/)) sections.unshift({ type: null, body: '' });
+			else sections[0].body += (line + '\n');
+		} else if (sections[0].type === 'tab') {
+			if (!line.match(/^[^ \t]/)) sections.unshift({ type: null, body: '' });// TODO find better regexp for 4 spaces
+			else sections[0].body += (line.replace(/^    |^\t/, '') + '\n');
+		} else if (sections[0].type === 'table') {
+			if (line.match(/^$/)) sections.unshift({ type: null, body: '' });
+			else sections[0].body += (line + '\n');
+		} // else: unknown section type ?!
+		return sections;
+	}, [{ type: null, body: '' }])
+	//console.log(out.reverse());
+
 	let stack = [elem('template')];
 	const lines = markdown.split(/\n/);
 	let state = { code: false, quote: false, table: false, list: 0 };
