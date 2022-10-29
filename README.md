@@ -1,25 +1,22 @@
-<img src=.github/logo.svg width=100% height=200>
+<img src="./.logo.svg" width=100% height=200>
 
 # Markdown to Elements
 
-A ~1KB safe [Markdown](github.github.com/gfm/)-[ish](#Limitation)
-to [NodeList](https://developer.mozilla.org/en-US/docs/Web/API/NodeList).
+A ~100LoC **safe** [Markdown](https://spec.commonmark.org/)+[GFM](https://github.github.com/gfm/)
+to [`NodeList`](https://developer.mozilla.org/en-US/docs/Web/API/NodeList) parser with [Limitation](#Limitation)
 
 ## Usage
 
 ```ts
-import md from "./md2dom.js";
-const nodeList = md("Basic *example* !");
-const outputEl = document.getElementById('preview');
-outputEl.replaceChildren(...nodeList);
+import parse from "./md2dom.js";
+
+myElement.replaceChildren(...parse("Hello *world* !"));
 ```
 
 See: [demo.html](demo.html)
 
 ## Limitation
 
-See: [gfm.html](gfm.html)
+All HTML tags (including `<!-- comment -->`, `<script>`, `<a>` ...) are rendered **as text**.
 
-- no inline HTML support: unsuported by design
-- no alternativ header declaration using `===` or `---` : conflict with horizontal rules
-- no title in img/link, a (ex: `![alt](url "title")`): Low usage
+See `unsupported` in [gfm.html](gfm.html) for a complete list of non-compliances.

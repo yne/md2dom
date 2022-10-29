@@ -2,13 +2,23 @@
 <html lang=en>
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 <script type=module>
-  import m2d from "./md2dom.js";
+  import {parse} from "./md2dom.js";
   const form = document.forms.demo;
-  (form.oninput = () => form.preview.replaceChildren(...m2d(form.code.value)))();
+  form.code.value = localStorage.markdown_demo || form.code.value;
+  (form.oninput = () => console.clear()+form.preview.replaceChildren(...parse(localStorage.markdown_demo = form.code.value)))();
 </script>
+<style>
+  body {margin: 0;}
+  form {display: flex;}
+  form > * {flex: 1;}
+  blockquote{border-left: .25em solid;}
+  pre{background:rgba(0,0,0,0.1)}
+</style>
 
 <form name="demo">
-<textarea name="code">
+<textarea name="code" rows="42">
+wow not a header !
+
 # Title header
 
 Markdown elements can be split into three groups : inline, block, and section
@@ -56,8 +66,8 @@ with lang=js
   on multiple line
 - with dash
 * or star
-    - even
-    * sublist
+  - even
+  * sublist
 * back to normal
 
 1. numbered list
@@ -68,11 +78,3 @@ with lang=js
 </textarea>
 <output name="preview"></output>
 </form>
-
-<style>
-  form {
-    display: flex;
-    gap: 10vw;
-  }
-  form > * {flex:1;}
-</style>

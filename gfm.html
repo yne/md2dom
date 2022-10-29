@@ -2,7 +2,7 @@
 <meta charset="utf8">
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
 <script type=module>
-    import md2dom from "./md2dom.js";
+    import {parse} from "./md2dom.js";
     /*
     extracted from https://github.github.com/gfm/ using
     JSON.stringify([...$$('.example')].map(ex => [...ex.querySelectorAll('code')].map(code => code.innerText.slice(0,-1))))
@@ -2717,25 +2717,28 @@
             "<p>Multiple     spaces</p>"
         ]
     ];
-    const derogs = [
-        61,
-        // GFM allows HTML block (table, div, pre, script, style, comment, doctype, cdata)
+    const unsupported = [
+        // GFM Setext mutliline headings : but it require much lookeahead (see dillinger.io markdown-editor.github.io)
+        // 51,
+        // HTML block (table, div, pre, script, style, comment, doctype, cdata)
         118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,
-        // GFM allows table
-        198,199,200,201,202,203,204,205,
-        // GFM allows autolink
+        // table
+        // 198,199,200,201,202,203,204,205,
+        // 284 is crazy
+        // autolink
         622,623,624,625,626,627,628,629,630,631,632,633,634,635,
-        // GFM allows HTML inline (a, strong)
-        636,637,638,639,640,641,646,648,651,652,653,654,655,656,657,667,668
-    ]
+        // HTML inline (a, strong)
+        636,637,638,639,640,641,646,648,651,652,653,654,655,656,657,667,668,
+    ];
     function match(ref, res, id) {
         if (ref === res)return 'same';
         if (ref.replace(/&quot;/g,'"') === res)return 'same'; // quote escaping is useless
-        if (derogs.includes(id)) return 'derog';
+        if (ref.replace(/ \n/g,'') === res.replace(/ \n/g,''))return 'same';
+        if (unsupported.includes(id)) return 'derog';
         return 'diff';
     }
     const pres = use_cases.map(
-        ([md, html],id) => [md, html.replace(/ \/>/g, '>'), [...md2dom(md.replace(/→/g,'\t'))].map(e=>e.outerHTML).join('\n')]
+        ([md, html],id) => [md, html.replace(/ \/>/g, '>'), [...parse(md.replace(/→/g,'\t'))].map(e=>e.outerHTML).join('\n')]
         .map((innerText,type) => Object.assign(document.createElement('pre'), {innerText, title:`example:${id+1}`,id:`${['md-','html-','render-'][type]}${id+1}`}))
     )
     .map((pres,i) => {pres[2].className = match(pres[1].innerText, pres[2].innerText, i+1);return pres})

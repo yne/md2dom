@@ -1,136 +1,166 @@
-/* Architecture:
-We use a 3-level pass strategy:
-- section element (code, blockquote) (ol, ul?)
-- block element (h1..h6, hr, ol, ul)
-- inline element (a, em, strong)
-
-Issues:
+/*  Issues:
 - too much paragraph (every lines)
 - no list unstacking
 */
-const text = document.createTextNode.bind(document);
 const elem = (tag, props = {}, ch = []) => ch.reduce((e, c) => (e.appendChild(c), e), Object.assign(document.createElement(tag), props))
 
+const inline_rules = [
+	{
+		when: /_([^_]+?)_/g,
+		open: (e, m) => inline_parse(e.appendChild(elem("em")), m[1])
+	},
+	{
+		when: /\*([^\*]+?)\*/g,
+		open: (e, m) => inline_parse(e.appendChild(elem("em")), m[1])
+	},
+	{
+		when: /__([^_]+?)__/g,
+		open: (e, m) => inline_parse(e.appendChild(elem("strong")), m[1])
+	},
+	{
+		when: /\*\*([^\*]+?)\*\*/g,
+		open: (e, m) => inline_parse(e.appendChild(elem("strong")), m[1])
+	},
+	{
+		when: /~([^~]+?)~/g,
+		open: (e, m) => inline_parse(e.appendChild(elem("strike")), m[1])
+	},
+	{
+		when: /`([^`]+?)`/g,
+		open: (e, m) => inline_parse(e.appendChild(elem("code")), m[1])
+	},
+	{
+		when: /``(.+?)``/g,
+		open: (e, m) => inline_parse(e.appendChild(elem("code")), m[1])
+	},
+	{
+		when: /\[\s*!\[(.*?)\]\((.+?)\)\s*\]\((.+?)\)/g,
+		open: (e, m) => (e.appendChild(elem("a", { href: m[3] }, [elem("img", { alt: m[1], src: m[2] })])), m[1])
+	},
+	{
+		when: /\[\s*(.*?)\s*\]\((.+?)\)/g,
+		open: (e, m) => inline_parse(e.appendChild(elem("a", { href: m[2] })), m[1])
+	},
+	{
+		when: /!\[\s*(.*?)\s*\]\((.+?)\)/g,
+		open: (e, m) => (e.appendChild(elem("img", { alt: m[1], src: m[2] })), m[1])
+	},
+	{
+		when: /  $/g,
+		open: (e) => e.appendChild(elem("br"))
+	},
+];
 function inline_parse(e, txt) {
-	const inline_rules = [
-		[/_([^_]+?)_/g, (e, m) => inline_parse(e.appendChild(elem("em")), m[1])],
-		[/\*([^\*]+?)\*/g, (e, m) => inline_parse(e.appendChild(elem("em")), m[1])],
-		[/__([^_]+?)__/g, (e, m) => inline_parse(e.appendChild(elem("strong")), m[1])],
-		[/\*\*([^\*]+?)\*\*/g, (e, m) => inline_parse(e.appendChild(elem("strong")), m[1])],
-		[/~([^~]+?)~/g, (e, m) => inline_parse(e.appendChild(elem("strike")), m[1])],
-		[/`([^`]+?)`/g, (e, m) => inline_parse(e.appendChild(elem("code")), m[1])],
-		[/``(.+?)``/g, (e, m) => inline_parse(e.appendChild(elem("code")), m[1])],
-		[/\[\s*!\[(.*?)\]\((.+?)\)\s*\]\((.+?)\)/g, (e, m) => (e.appendChild(elem("a", { href: m[3] }, [elem("img", { alt: m[1], src: m[2] })])), m[1])],
-		[/\[\s*(.*?)\s*\]\((.+?)\)/g, (e, m) => inline_parse(e.appendChild(elem("a", { href: m[2] })), m[1])],
-		[/!\[\s*(.*?)\s*\]\((.+?)\)/g, (e, m) => (e.appendChild(elem("img", { alt: m[1], src: m[2] })), m[1])],
-		[/  $/g, (e) => e.appendChild(elem("br"))] // shall be in block ? we want <br> in <h> ?
-	];
 	let pos = 0;
-	const matches = inline_rules.map(([re, cb]) => [...txt.matchAll(re)].map(m => [cb, m])).flat().sort((a, b) => a[1].index - b[1].index);
+	const matches = inline_rules.map((rule) => [...txt.matchAll(rule.when)].map(m => [rule.open, m])).flat().sort((a, b) => a[1].index - b[1].index);
 	for (let [cb, m] of matches) {
 		if (m.index < pos) { continue; } // skip already matched 
-		e.appendChild(text(txt.slice(pos, m.index)));
+		e.appendChild(new Text(txt.slice(pos, m.index)));
 		pos = m.index + m[0].length;
 		cb(e, m);
 	}
-	e.appendChild(text(txt.slice(pos)));
+	e.appendChild(new Text(txt.slice(pos)));
 	return e;
 };
-
-function block_parse(es, line) {
-	function list(e, [_, indent, li], ctor, tag) {
-		while (e[indent.length >> 1]?.constructor !== ctor)
-			e.unshift(e[0].appendChild(elem(tag)))
-		inline_parse(e[0].appendChild(elem("li")), li)
-	}
-	const block_rules = [ // TODO: order by occuring frequency
-		[/^\s*$/, (e) => { while (e.length > 1) e.shift() }],
-		[/^ {0,3}---+$/, ([e]) => e.appendChild(elem("hr"))],
-		[/^ {0,3}___+$/, ([e]) => e.appendChild(elem("hr"))],
-		[/^ {0,3}\*\*\*+$/, ([e]) => e.appendChild(elem("hr"))],
-		[/^ {0,3}# (.*?)#* *$/, ([e], m) => inline_parse(e.appendChild(elem("h1")), m[1])],
-		[/^ {0,3}## (.*?)#* *$/, ([e], m) => inline_parse(e.appendChild(elem("h2")), m[1])],
-		[/^ {0,3}### (.*?)#* *$/, ([e], m) => inline_parse(e.appendChild(elem("h3")), m[1])],
-		[/^ {0,3}#### (.*?)#* *$/, ([e], m) => inline_parse(e.appendChild(elem("h4")), m[1])],
-		[/^ {0,3}##### (.*?)#* *$/, ([e], m) => inline_parse(e.appendChild(elem("h5")), m[1])],
-		[/^ {0,3}###### (.*?)#* *$/, ([e], m) => inline_parse(e.appendChild(elem("h6")), m[1])],
-		// TODO: move the following as section rule ?
-		[/^(\s*)[-\*] (.*)/, (e, m) => list(e, m, HTMLUListElement, "ul")],
-		[/^(\s*)\d+\. (.*)/, (e, m) => list(e, m, HTMLOListElement, "ol")],
-		[/^> *(.*)/, (e, m) => {
-			if (e[0].constructor != HTMLQuoteElement)
-				e.unshift(e[0].appendChild(elem("blockquote")));
-			inline_parse(e[0], m[1]);
-		}],
-	];
-	for (const [re, cb] of block_rules) {
-		const m = line.match(re);
-		if (!m) continue;
-		cb(es, m);
-		return es;
-	}
-	inline_parse(es[0].appendChild(elem("p")), line); // not a block line => try inline
-	return es;
-}
-
-export default function section_parse(markdown) {
-	const out = markdown.split(/\n/).reduce((sections, line, i, lines) => {
-		const next = lines[i + 1]||'';
-		if (sections[0].type === null) {
-			if (line.match(/^```(\w*)$/)) sections.unshift({ type: 'code', body: '', opts: line.match(/^```(\w*)$/).slice(1) });
-			else if (line.match(/^ {0,3}>/)) sections.unshift({ type: 'quote', body: '' });
-			else if (line.match(/^ {4,4}|^\t/)) sections.unshift({ type: 'tab', body: '' });
-			else if (line.match(/^ {0,3}\- /)) sections.unshift({ type: 'list-dash', body: ''});
-			else if (line.match(/^ {0,3}\+ /)) sections.unshift({ type: 'list-dash', body: ''});
-			else if (line.match(/^ {0,3}\* /)) sections.unshift({ type: 'list-star', body: ''});
-			else if (line.match(/^ {0,3}\d+\. /)) sections.unshift({ type: 'list-num', body: ''});
-			else if (line.match(/.+[|].+/) && next.match(/-:?|:?-/)) sections.unshift({ type: 'table', body: '' });
-			else sections[0].body += (line + '\n');
-		} else if (sections[0].type === 'code') {
-			if (line.match(/^```$/)) sections.unshift({ type: null, body: '' });
-			else sections[0].body += (line + '\n');
-		} else if (sections[0].type === 'quote') {
-			if (line.match(/^ *[^>]/)) sections.unshift({ type: null, body: '' });
-			else sections[0].body += (line.replace(/^ *>/, '') + '\n');
-		} else if (sections[0].type === 'list-dash' ||
-		           sections[0].type === 'list-star' ||
-				   sections[0].type === 'list-num' ||
-				   sections[0].type === 'list-plus') {
-			// when list is over multiple paragraph => put <p> in each <li> ?
-			if (line.match(/^$/)) sections.unshift({ type: null, body: '' });
-			else sections[0].body += (line + '\n');
-		} else if (sections[0].type === 'tab') {
-			if (!line.match(/^[^ \t]/)) sections.unshift({ type: null, body: '' });// TODO find better regexp for 4 spaces
-			else sections[0].body += (line.replace(/^    |^\t/, '') + '\n');
-		} else if (sections[0].type === 'table') {
-			if (line.match(/^$/)) sections.unshift({ type: null, body: '' });
-			else sections[0].body += (line + '\n');
-		} // else: unknown section type ?!
-		return sections;
-	}, [{ type: null, body: '' }])
-	//console.log(out.reverse());
-
-	let stack = [elem('template')];
-	const lines = markdown.split(/\n/);
-	let state = { code: false, quote: false, table: false, list: 0 };
-	for (let line of lines) {
-		let m = line.match(/^```(\w*)$/);
-		let s = line.match(/^    /); // code
-		let q = line.match(/^\s*>/); // quote
-		if (m) {
-			state.code = !state.code;
-			if (state.code) { // open <code> section
-				stack.unshift(stack[0].appendChild(elem("pre")));
-				stack.unshift(stack[0].appendChild(elem("code", { lang: m[1] })));
-			} else { // close <code> section
-				stack.shift();
-				stack.shift();
+const block_rules = [
+	{
+		when: /^((?:(?: {4}|\t).*\n)+)/,
+		open: ([_, code], ctx) => elem('pre', {}, [elem('code', { skip: ctx.line += code.split('\n').length - 1 }, [new Text(code)])])
+	}, {
+		when: /^ {0,3}(?:(?:-[ \t]*){3,}|(?:_[ \t]*){3,}|(?:\*[ \t]*){3,})[ \t]*\n/,
+		open: () => elem('hr'),
+	}, {
+		when: /^ {0,3}(#{1,6}) (.*?)[ \t]*#*[ \t]*\n/,
+		open: ([_, level, header]) => inline_parse(elem(`h${level.length}`), header)
+	}, {
+		when: /^ {0,3}([^ \t]+)\n *(-+|=+)[ \t]*\n/,
+		open: ([_, header, [type]], ctx) => (ctx.line++, inline_parse(elem(`h${type == '=' ? 1 : 2}`), header))
+	}, {
+		when: /^ {0,3}```(.*)\n([\S\s]*)\n```\n/,
+		open: ([_, lang, code], ctx) => elem('pre', {}, [elem('code', { lang, skip: ctx.line += _.split('\n').length - 2 }, [new Text(code)])]),
+	}, {
+		when: /^ {0,3}([|].*)\n *([|] ?:?-+:? ?.*)\n *((:?[|].*\n)+)/,
+		open: ([_, thead, align, rows], ctx) => {
+			const aligns = align.split('|').filter(e => e.trim()).map(str => ['', (str.match(/:-/) ? 'left' : 'right'), 'center'][str.split(':').length - 1]);
+			ctx.line += _.split('\n').length - 2;
+			return elem('table', {}, [
+				elem('thead', {}, [elem('tr', {}, thead.split('|').filter(s => s.trim()).map((th) => inline_parse(elem('th'), th.trim())))]),
+				elem('tbody', {}, rows.split('\n').map(cols => cols.split('|').filter(e => e.trim())).map(tr =>
+					elem('tr', {}, tr.map((td, i) => inline_parse(elem('td', aligns[i] ? { align: aligns[i] } : {}), td.trim())))
+				))
+			]);
+		},
+	}, {// in stark contrast with previous rules, the list/quote rules is way too complex
+		when: /^ {0,3}([-+*>]|(?:\d+[\.\)])) (.*)/,
+		open: (m, ctx) => {
+			function deindent({ markdown, linesIdx, line }, indent) {
+				let lines = '', start = line;
+				for (; line < linesIdx.length; line++) {
+					const l = markdown.slice(linesIdx[line], linesIdx[line + 1]);
+					if (l.slice(0, Math.min(l.length, indent)).trim() !== '') break;
+					lines += l.slice(indent);
+					//indexes
+				}
+				return [lines, line - start - 1]
 			}
-		} else if (state.code) { // no change while in code => append text
-			stack[0].appendChild(text(line + '\n'));
-		} else {
-			stack = block_parse(stack, line); // nothing and no <p> ? go into <p>
+			const split = ([_, type, line]) => [type.slice(0, -1), type.slice(-1), line, _.length - line.length + '\n'.length];
+			const [start, type, firstline, indent] = split(m);
+			const bq = type == '>';
+			const item = bq ? 'p' : 'li';
+			const tag = bq ? 'blockquote' : (type == '.' || type == ')') ? 'ol' : 'ul';
+			const lis = [inline_parse(elem(item), firstline)];
+			ctx.line++;
+			const [deindented, size] = deindent(ctx, indent);
+			if (deindented) {
+				lis[0].replaceChildren(...parse(firstline + '\n' + deindented));
+				ctx.line += size;
+				console.log('goto', size, deindented.split('\n'))
+			} else for (; ctx.line < ctx.linesIdx.length; ctx.line++) {
+				// glob next *indented* lines until another regexp match
+				const lines = ctx.markdown.slice(ctx.linesIdx[ctx.line]);
+				const line = ctx.markdown.slice(ctx.linesIdx[ctx.line], ctx.linesIdx[ctx.line + 1]);
+				let match; // for reuse
+				const rule = ctx.block_rules.find(r => match = lines.match(r.when));
+				if (!rule) { // no new block => append to last item
+					inline_parse(lis[0], line);
+				} else if (rule != ctx.rule) {
+					ctx.line--;
+					break;
+				} else {
+					const [_sub_start, sub_type, sub_innerText] = split(match);
+					if (sub_type == type) { // TODO: check if same indent
+						lis.unshift(inline_parse(elem(item), sub_innerText));
+					} else { // change of type
+						ctx.line--; // unshift line
+						break; // so next parser loop can do it job 
+					}
+				}
+			}
+			return elem(tag, { start }, lis.reverse());
+		},
+	}, { // last chance => paragraph
+		when: /^\n(?:[^\n]*)/,
+		open: () => []
+	}
+];
+function parse(markdown, parent = elem('template', {}, [elem('p')])) {
+	const ctx = { markdown: markdown + '\n', linesIdx: [0], block_rules };
+	for (let i = 0; i < ctx.markdown.length; i++) {
+		if (ctx.markdown[i] === "\n") ctx.linesIdx.push(i + '\n'.length);
+	}
+	for (ctx.line = 0; ctx.line < ctx.linesIdx.length; ctx.line++) {
+		const lines = ctx.markdown.slice(ctx.linesIdx[ctx.line]); // console.debug('lines:', [lines]);
+		if (ctx.rule = ctx.block_rules.find(r => lines.match(r.when))) { // console.debug('found:', rule_started);
+			parent.append(ctx.rule.open(lines.match(ctx.rule.when), ctx), elem('p'));//TODO: ctx.line+=match().length ?
+		} else { // no starting block => append (lazy?) line to lastChild
+			const line = ctx.markdown.slice(ctx.linesIdx[ctx.line], ctx.linesIdx[ctx.line + 1]);
+			inline_parse(parent.lastChild, line.trim()); //console.log('lazyline', [line], 'to:', parent.lastChild);
 		}
 	}
-	return stack[0].childNodes;
+	// p:empty does not match :blank p, so we do it ourself
+	parent.querySelectorAll(':scope>p:empty').forEach(ch => parent.removeChild(ch));
+	console.log([...parent.childNodes].map(c => c.outerHTML).join('\n'))
+	return parent.childNodes;
 }
+
+export { parse };
