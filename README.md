@@ -1,22 +1,23 @@
-<img src="./.logo.svg" width=100% height=200>
+![logo](logo.svg)
 
 # Markdown to Elements
 
-A ~100LoC **safe** [Markdown](https://spec.commonmark.org/)+[GFM](https://github.github.com/gfm/)
-to [`NodeList`](https://developer.mozilla.org/en-US/docs/Web/API/NodeList) parser with [Limitation](#Limitation)
+A ~100LoC **safe** [Beyond](https://www.johnmacfarlane.net/beyond-markdown.html) [Markdown](https://spec.commonmark.org/)
+to [`NodeList`](https://developer.mozilla.org/en-US/docs/Web/API/NodeList) parser.
 
 ## Usage
 
 ```ts
-import parse from "./md2dom.js";
+import md2dom from "./md2dom.js";
 
-myElement.replaceChildren(...parse("Hello *world* !"));
+myElement.replaceChildren(...(new md2dom()).parse("Hello *world* !"));
 ```
 
 See: [demo.html](demo.html)
 
 ## Limitation
 
-All HTML tags (including `<!-- comment -->`, `<script>`, `<a>` ...) are rendered **as text**.
+This parser favor simplicity and safety over backward compatibility.
 
-See `unsupported` in [gfm.html](gfm.html) for a complete list of non-compliances.
+- all HTML tags (including `<!-- comment -->`, `<script>`, `<a>` ...) are rendered as text.
+- no list nesting (for now) as I can't figure a clean/stateless way to do it

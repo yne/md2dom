@@ -1,166 +1,107 @@
-/*  Issues:
-- too much paragraph (every lines)
-- no list unstacking
-*/
 const elem = (tag, props = {}, ch = []) => ch.reduce((e, c) => (e.appendChild(c), e), Object.assign(document.createElement(tag), props))
-
-const inline_rules = [
-	{
-		when: /_([^_]+?)_/g,
-		open: (e, m) => inline_parse(e.appendChild(elem("em")), m[1])
-	},
-	{
-		when: /\*([^\*]+?)\*/g,
-		open: (e, m) => inline_parse(e.appendChild(elem("em")), m[1])
-	},
-	{
-		when: /__([^_]+?)__/g,
-		open: (e, m) => inline_parse(e.appendChild(elem("strong")), m[1])
-	},
-	{
-		when: /\*\*([^\*]+?)\*\*/g,
-		open: (e, m) => inline_parse(e.appendChild(elem("strong")), m[1])
-	},
-	{
-		when: /~([^~]+?)~/g,
-		open: (e, m) => inline_parse(e.appendChild(elem("strike")), m[1])
-	},
-	{
-		when: /`([^`]+?)`/g,
-		open: (e, m) => inline_parse(e.appendChild(elem("code")), m[1])
-	},
-	{
-		when: /``(.+?)``/g,
-		open: (e, m) => inline_parse(e.appendChild(elem("code")), m[1])
-	},
-	{
-		when: /\[\s*!\[(.*?)\]\((.+?)\)\s*\]\((.+?)\)/g,
-		open: (e, m) => (e.appendChild(elem("a", { href: m[3] }, [elem("img", { alt: m[1], src: m[2] })])), m[1])
-	},
-	{
-		when: /\[\s*(.*?)\s*\]\((.+?)\)/g,
-		open: (e, m) => inline_parse(e.appendChild(elem("a", { href: m[2] })), m[1])
-	},
-	{
-		when: /!\[\s*(.*?)\s*\]\((.+?)\)/g,
-		open: (e, m) => (e.appendChild(elem("img", { alt: m[1], src: m[2] })), m[1])
-	},
-	{
-		when: /  $/g,
-		open: (e) => e.appendChild(elem("br"))
-	},
-];
-function inline_parse(e, txt) {
-	let pos = 0;
-	const matches = inline_rules.map((rule) => [...txt.matchAll(rule.when)].map(m => [rule.open, m])).flat().sort((a, b) => a[1].index - b[1].index);
-	for (let [cb, m] of matches) {
-		if (m.index < pos) { continue; } // skip already matched 
-		e.appendChild(new Text(txt.slice(pos, m.index)));
-		pos = m.index + m[0].length;
-		cb(e, m);
-	}
-	e.appendChild(new Text(txt.slice(pos)));
-	return e;
-};
-const block_rules = [
-	{
-		when: /^((?:(?: {4}|\t).*\n)+)/,
-		open: ([_, code], ctx) => elem('pre', {}, [elem('code', { skip: ctx.line += code.split('\n').length - 1 }, [new Text(code)])])
-	}, {
-		when: /^ {0,3}(?:(?:-[ \t]*){3,}|(?:_[ \t]*){3,}|(?:\*[ \t]*){3,})[ \t]*\n/,
-		open: () => elem('hr'),
-	}, {
-		when: /^ {0,3}(#{1,6}) (.*?)[ \t]*#*[ \t]*\n/,
-		open: ([_, level, header]) => inline_parse(elem(`h${level.length}`), header)
-	}, {
-		when: /^ {0,3}([^ \t]+)\n *(-+|=+)[ \t]*\n/,
-		open: ([_, header, [type]], ctx) => (ctx.line++, inline_parse(elem(`h${type == '=' ? 1 : 2}`), header))
-	}, {
-		when: /^ {0,3}```(.*)\n([\S\s]*)\n```\n/,
-		open: ([_, lang, code], ctx) => elem('pre', {}, [elem('code', { lang, skip: ctx.line += _.split('\n').length - 2 }, [new Text(code)])]),
-	}, {
-		when: /^ {0,3}([|].*)\n *([|] ?:?-+:? ?.*)\n *((:?[|].*\n)+)/,
-		open: ([_, thead, align, rows], ctx) => {
-			const aligns = align.split('|').filter(e => e.trim()).map(str => ['', (str.match(/:-/) ? 'left' : 'right'), 'center'][str.split(':').length - 1]);
-			ctx.line += _.split('\n').length - 2;
-			return elem('table', {}, [
-				elem('thead', {}, [elem('tr', {}, thead.split('|').filter(s => s.trim()).map((th) => inline_parse(elem('th'), th.trim())))]),
-				elem('tbody', {}, rows.split('\n').map(cols => cols.split('|').filter(e => e.trim())).map(tr =>
-					elem('tr', {}, tr.map((td, i) => inline_parse(elem('td', aligns[i] ? { align: aligns[i] } : {}), td.trim())))
-				))
-			]);
+export default class {
+	inline_rules = [
+		{  //! an emphasis text is surrounded with a `_` character or a `{_` and `_}` if disambiguation is necessary
+			when: /\{_(.+?)_\}|_(.+?)_/g,
+			open: (e, m) => this.inline(m[1] || m[2], e.appendChild(elem("em")))
+		}, { //! a strong text is surrounded with a `*` character or a `{*` and `*}` if disambiguation is necessary
+			when: /\{\*(.+?)\*\}|\*(.+?)\*/g,
+			open: (e, m) => this.inline(m[1] || m[2], e.appendChild(elem("strong")))
+		}, { //! a highlighted text is surrounded with `{=` and `=}`
+			when: /\{=(.+?)=\}/g,
+			open: (e, m) => this.inline(m[1] || m[2], e.appendChild(elem("mark")))
+		}, { //! a ins text is surrounded with a `{+` and `+}` character
+			when: /\{\+(.+?)\+\}/g,
+			open: (e, m) => this.inline(m[1], e.appendChild(elem("ins")))
+		}, { //! a sub text is surrounded with a `{-` and `-}` character
+			when: /\{-(.+?)-\}/g,
+			open: (e, m) => this.inline(m[1], e.appendChild(elem("del")))
+		}, { //! a sub text is surrounded with a `~` character
+			when: /~(.+?)~/g,
+			open: (e, m) => this.inline(m[1], e.appendChild(elem("sub")))
+		}, { //! a smiley text is surrounded with a `:` character
+			when: /:(.+?):/g,
+			open: (e, m) => (e.appendChild((this.emojis || [])[m[1]] ? elem("span", { title: m[1] }, [new Text(this.emojis[m[1]])]) : new Text(m[1])), m[1])
+		}, { //! a code text is surrounded with a `` ` ``, or 2 if needed because text already contain a single backtick 
+			when: /(`{1,2})(.+?)\1/g,
+			open: (e, m) => (e.appendChild(elem("code", {}, [new Text(m[2])])), m[1])
+		}, { // manual a+img rule to avoid balanced regexp on link item
+			when: /\[\s*!\[(.*?)\]\((.+?)\)\s*\]\((.+?)\)/g,
+			open: (e, m) => (e.appendChild(elem("a", { href: m[3] }, [elem("img", { alt: m[1], src: m[2] })])), m[1])
+		}, { //! a named link starts with it name inside brackets, followed by it address inside parenthesis
+			when: /\[(.*?)\]\((.+?)\)/g,
+			open: (e, m) => this.inline(m[1], e.appendChild(elem("a", { href: m[2] })))
+		}, { //! a link is surrounded with `<` and `>`, mail addresses are converted to `mailto:` uri
+			when: /<(.+?)>/g,
+			open: (e, m) => e.appendChild(elem("a", { href: (m[1].match('@') ? '' : 'mailto:') + m[1] }, [new Text(m[1])]))
+		}, { //! an image starts with a `!` followed by it alt-name inside brackets, followed by it address inside parenthesis
+			when: /!\[\s*(.*?)\s*\]\((.+?)\)/g,
+			open: (e, m) => (e.appendChild(elem("img", { alt: m[1], src: m[2] })), m[1])
 		},
-	}, {// in stark contrast with previous rules, the list/quote rules is way too complex
-		when: /^ {0,3}([-+*>]|(?:\d+[\.\)])) (.*)/,
-		open: (m, ctx) => {
-			function deindent({ markdown, linesIdx, line }, indent) {
-				let lines = '', start = line;
-				for (; line < linesIdx.length; line++) {
-					const l = markdown.slice(linesIdx[line], linesIdx[line + 1]);
-					if (l.slice(0, Math.min(l.length, indent)).trim() !== '') break;
-					lines += l.slice(indent);
-					//indexes
-				}
-				return [lines, line - start - 1]
-			}
-			const split = ([_, type, line]) => [type.slice(0, -1), type.slice(-1), line, _.length - line.length + '\n'.length];
-			const [start, type, firstline, indent] = split(m);
-			const bq = type == '>';
-			const item = bq ? 'p' : 'li';
-			const tag = bq ? 'blockquote' : (type == '.' || type == ')') ? 'ol' : 'ul';
-			const lis = [inline_parse(elem(item), firstline)];
-			ctx.line++;
-			const [deindented, size] = deindent(ctx, indent);
-			if (deindented) {
-				lis[0].replaceChildren(...parse(firstline + '\n' + deindented));
-				ctx.line += size;
-				console.log('goto', size, deindented.split('\n'))
-			} else for (; ctx.line < ctx.linesIdx.length; ctx.line++) {
-				// glob next *indented* lines until another regexp match
-				const lines = ctx.markdown.slice(ctx.linesIdx[ctx.line]);
-				const line = ctx.markdown.slice(ctx.linesIdx[ctx.line], ctx.linesIdx[ctx.line + 1]);
-				let match; // for reuse
-				const rule = ctx.block_rules.find(r => match = lines.match(r.when));
-				if (!rule) { // no new block => append to last item
-					inline_parse(lis[0], line);
-				} else if (rule != ctx.rule) {
-					ctx.line--;
-					break;
-				} else {
-					const [_sub_start, sub_type, sub_innerText] = split(match);
-					if (sub_type == type) { // TODO: check if same indent
-						lis.unshift(inline_parse(elem(item), sub_innerText));
-					} else { // change of type
-						ctx.line--; // unshift line
-						break; // so next parser loop can do it job 
-					}
-				}
-			}
-			return elem(tag, { start }, lis.reverse());
-		},
-	}, { // last chance => paragraph
-		when: /^\n(?:[^\n]*)/,
-		open: () => []
-	}
-];
-function parse(markdown, parent = elem('template', {}, [elem('p')])) {
-	const ctx = { markdown: markdown + '\n', linesIdx: [0], block_rules };
-	for (let i = 0; i < ctx.markdown.length; i++) {
-		if (ctx.markdown[i] === "\n") ctx.linesIdx.push(i + '\n'.length);
-	}
-	for (ctx.line = 0; ctx.line < ctx.linesIdx.length; ctx.line++) {
-		const lines = ctx.markdown.slice(ctx.linesIdx[ctx.line]); // console.debug('lines:', [lines]);
-		if (ctx.rule = ctx.block_rules.find(r => lines.match(r.when))) { // console.debug('found:', rule_started);
-			parent.append(ctx.rule.open(lines.match(ctx.rule.when), ctx), elem('p'));//TODO: ctx.line+=match().length ?
-		} else { // no starting block => append (lazy?) line to lastChild
-			const line = ctx.markdown.slice(ctx.linesIdx[ctx.line], ctx.linesIdx[ctx.line + 1]);
-			inline_parse(parent.lastChild, line.trim()); //console.log('lazyline', [line], 'to:', parent.lastChild);
+	];
+	block_rules = [
+		{	//! Thematic break lines are composed of at least 3 `-` or `*` characters than can each have spaces before or after them
+			when: /^ *(-|\*)(?: *\1){2,} *\n/,
+			open: () => [elem('hr'), elem('p')],// add a <p> since it can't accept continuation lines
+		}, { //! headers lines starts with 1 to 6 `#` followed by a space, followed by the title
+			when: /^(#{1,6})[ \t]+(.+?)\n/,
+			open: (_, { length }, header) => [this.inline(header, elem(`h${length}`))]
+		}, { //! citations blocks starts with at least 3 `>` followed by an optional citation text and must end with the equivalent number of `>` on another line
+			when: /^( *>{3,})([^>\n].*)?\n([\S\s]*)\n\1\n/,
+			open: (_, _lv, cite, body) => [elem('blockquote', { cite }, [...this.parse(body)])],
+		}, { //! code blocks starts with at least 3 `` ` `` followed by an optional code language and must end with the equivalent number of `` ` ``
+			when: /^(`{3,})(.*)\n([\S\s]*)\n\1\n/,
+			open: (_, _lv, lang, body) => [elem('pre', {}, [elem('code', { lang }, [new Text(body)])])],
+		}, { //! tables lines starts and end with a `|`, a line can be a separator line `|:---:|` , otherwise it's a data line; separator prefixed line become headers
+			when: /^(?:[|].+[|]\n)+/, // /^([|] *:?-+:? *[|])$/
+			open: (_) => {
+				const trs = _.split(/\n/).slice(0, -1).map(row => ({ sep: row.match(/[|] *?:?-+:? */), data: row.split('|').slice(1, -1) }));
+				const [h, align] = [trs.findIndex(tr => tr.sep), (trs.find(tr => tr.sep) || { data: [] }).data.map(str => [{}, { align: (str.match(/:-/) ? 'left' : 'right') }, { align: 'center' }][(str.match(/:/g) || []).length])];
+				return [elem('table', {}, trs.filter(tr => !tr.sep).map((tr, n) => elem('tr', {}, tr.data.map((td, i) => this.inline(td, elem(n < h ? 'th' : 'td', align[i]))))))];
+			},
+		}, { //! unordered lists items line starts with `*`, `+` or `-`, ordered lists start with number followed by a dot
+			when: /^( *)([\*\+\-]|(?:\d+\.)) (.*)\n/,
+			open: (_, _lv, mode, body, [parent]) => {
+				const attr = { level: _lv.length, mode: mode.slice(-1), start: mode.slice(0, -1) || undefined };
+				const li = this.inline(body, elem('li'));
+				return parent.mode != attr.mode ? [elem(attr.start ? 'ol' : 'ul', attr, [li])] : parent.append(li);
+			},
+		}, { //! blank line generate a new paragraph
+			when: /^\s*\n/,
+			open: () => [elem('p')]
 		}
+	];
+	constructor(options = {}) {
+		Object.assign(this, { newline: true, compact: true }, options);
 	}
-	// p:empty does not match :blank p, so we do it ourself
-	parent.querySelectorAll(':scope>p:empty').forEach(ch => parent.removeChild(ch));
-	console.log([...parent.childNodes].map(c => c.outerHTML).join('\n'))
-	return parent.childNodes;
+	inline(line, parent) {
+		let pos = 0;
+		const matches = this.inline_rules.map((rule) => [...line.matchAll(rule.when)].map(m => [rule.open, m])).flat().sort((a, b) => a[1].index - b[1].index);
+		for (let [cb, m] of matches) {
+			if (m.index < pos) { continue; } // skip already matched 
+			parent.appendChild(new Text(line.slice(pos, m.index)));
+			pos = m.index + m[0].length;
+			cb(parent, m);
+		}
+		parent.appendChild(new Text(line.slice(pos)));
+		return parent;
+	};
+	parse(lines) {
+		let block_rule, last_match, last_block;
+		const parent = elem('template', {}, last_block = [elem('p')]); // default first block
+		if (!lines.endsWith('\n'))
+			lines += '\n'; // UNIX principle: all line must end with \n
+		do
+			if (block_rule = this.block_rules.find(r => last_match = lines.match(r.when))) {
+				const to_append = block_rule.open(...last_match, last_block);
+				to_append && parent.append(...(last_block = to_append), ...this.compact ? [elem('p')] : []);
+			} else {
+				if (parent.lastChild.innerText)
+					parent.lastChild.appendChild(this.newline ? elem('br') : new Text('\n'));
+				this.inline((last_match = lines.match(/.*\n/))[0].trim(), parent.lastChild);
+			}
+		while (lines = lines.slice(last_match[0].length));
+		parent.querySelectorAll(':scope>p:empty').forEach(ch => parent.removeChild(ch));
+		return parent.childNodes;
+	}
 }
-
-export { parse };

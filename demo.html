@@ -1,80 +1,110 @@
 <!DOCTYPE html>
 <html lang=en>
 <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script type=module>
-  import {parse} from "./md2dom.js";
+  import md2dom from "./md2dom.js";
+  import emojis from "./emoji.js";
   const form = document.forms.demo;
   form.code.value = localStorage.markdown_demo || form.code.value;
-  (form.oninput = () => console.clear()+form.preview.replaceChildren(...parse(localStorage.markdown_demo = form.code.value)))();
+  (form.oninput = () => form.preview.replaceChildren(...(new md2dom({emojis, newline:form.newline.checked, compact:form.compact.checked})).parse(localStorage.markdown_demo = form.code.value)))();
 </script>
 <style>
   body {margin: 0;}
-  form {display: flex;}
-  form > * {flex: 1;}
-  blockquote{border-left: .25em solid;}
-  pre{background:rgba(0,0,0,0.1)}
+  .cols {display: flex;}
+  .cols > * {flex: 1; max-height: 100vh; overflow-y: scroll;}
+  textarea {border-right: 1em solid transparent;resize: none;}
+  output pre,code { background:#0001;}
+  output pre>code { background:none;}
+  output pre>code::before { content:attr(lang); float:right; opacity: .3;}
+  output table {border-collapse: collapse;margin: auto;}
+  output td,th { border: 1px solid;}
+  output th {background: #0001;}
+  output p {text-align: justify;}
+  output blockquote { border-left: .2em solid;margin: 0.25em;padding-left: 0.25em;}
+  output blockquote[cite=".info"]{background-color:#DDF4;}
+  output blockquote[cite=".info"]::before{content: '🛈';float:right}
+  output blockquote[cite=".warning"]{background-color:#FEB4;}
+  output blockquote[cite=".warning"]::before{content: '⚠️';float:right}
 </style>
 
 <form name="demo">
+  <nav style="position: absolute;right: 5em;">
+    <label><input type="checkbox" name="newline" checked>\n=&lt;br&gt;</label>
+    <label><input type="checkbox" name="compact" checked title="disable lazy-line behavior">compact</label>
+  </nav>
+  <div class="cols">
+
 <textarea name="code" rows="42">
-wow not a header !
+# Inline elements
 
-# Title header
+| render             | code                 |
+| ------             | ----                 |
+| normal             | `normal`             |
+| *strong*           | `*strong*`           |
+| _emphasis_         | `_emphasis_`         |
+| {=mark=}           | `{=mark=}`           |
+| {-del-}            | `{-del-}`            |
+| {+ins+}            | `{+ins+}`            |
+| :+1:               | `:+1:`               |
+| `code`             | `` `code` ``         |
+| <ftp://x.y/z>      | `<ftp://x.y/z>`      |
+| [my link](url)     | `[my link](url)`     |
+| ![logo](logo.svg)  | `![logo](logo.svg)` |
+| [![linked logo](logo.svg)](url) | `[![linked logo](logo.svg)](url)` |
 
-Markdown elements can be split into three groups : inline, block, and section
+# Block elements
 
-Let's start with the easiest first
+## Code
 
-## Inline
+Same as markdown, code nesting possible using more than 3 backtick:
 
-this *is* a _sample_ of inline
-[link](https://example.com/) and ![logo](.github/logo.svg)
-even both [![logo](.github/logo.svg)](https://github.com/yne/md2dom)
-
-Automatic link http://example.com and mail test@example.com
-
-## Block
-
-Horizontal rule:
-
-----
-
-double space  
-to breakline
-
-### Multiple level
-#### of # headers ########
-##### with _inline_ syntax ######    
-###### support (see:[Inline](#Inline))
-
-## Section
-
-```js
-this is a code block
-with lang=js
+````markdown
+# displayed as raw text
+```myLang
+I am nested
 ```
+````
 
-    test
-    tab
+## Quote
 
-> Blockquote with breakline  
-> to have two lines
-> 
-> and two paragraph
+unline markdown, blockquote are declared as multiline (just like a block of code)
+and can be nested using
 
-- unordered list
-  on multiple line
-- with dash
-* or star
-  - even
-  * sublist
-* back to normal
+>>>.info
+this is an info blockquote with some CSS style
+  >>>>.warning
+  this is a nested warning with optional (but welcome) indent
+  >>>>
+>>>
 
-1. numbered list
-    on multiple line
+## Table
 
-1. new list because of empty line?
-  
+Same as markdown, but require all rows to start and end with a `|`.
+
+|A 1 cell table|
+
+If a separator/align line is found, all it preceding lines become `th`
+
+|Default Header | Left Header | Center Header | Right Header |
+|-------        | :----       | :------:      | -----:       |
+|Default        | Left        | Center        | Right        |
+
+## List
+
+same as markdown, but nesting is not supported, until I find a way to handle it without complexity.
+
+- first item
+- second item stay in the same list
+
+- empty line prefixed => new list
+* type changes => new list
++ another type =>  new list
+
+2. numerated list
+2. with specific start
+
 </textarea>
 <output name="preview"></output>
+</div>
 </form>
