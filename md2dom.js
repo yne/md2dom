@@ -45,7 +45,7 @@ export default class {
 			open: () => [elem('hr'), elem('p')],// add a <p> since it can't accept continuation lines
 		}, { //! headers lines starts with 1 to 6 `#` followed by a space, followed by the title
 			when: /^(#{1,6})[ \t]+(.+?)\n/,
-			open: (_, { length }, header) => [this.inline(header, elem(`h${length}`))]
+			open: (_, { length }, header) => [this.inline(header, elem(`h${length}`, {id:this.prefix+header.toLowerCase().replaceAll(/[^-\s\p{L}\p{M}\p{N}]/gu, '').replaceAll(/[-\s]+/g,'-')}))]
 		}, { //! citations blocks starts with at least 3 `>` followed by an optional citation text and must end with the equivalent number of `>` on another line
 			when: /^( *>{3,})([^>\n].*)?\n([\S\s]*)\n\1\n/,
 			open: (_, _lv, cite, body) => [elem('blockquote', { cite }, [...this.parse(body)])],
@@ -72,7 +72,7 @@ export default class {
 		}
 	];
 	constructor(options = {}) {
-		Object.assign(this, { newline: true, compact: true }, options);
+		Object.assign(this, { newline: true, compact: true , prefix: ''}, options);
 	}
 	inline(line, parent) {
 		let pos = 0;

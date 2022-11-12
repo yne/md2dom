@@ -57,17 +57,19 @@
 
 ## Code
 
+To format code into its own distinct block, use the triple ``` syntax.
+
 ````markdown
-# same as markdown
-```myLang
-I am nested
+```c
+int getRandomNumber() {
+  return 4; // chosen by fair dice roll
+}
 ```
-back to normal
 ````
 
 ## Quote
 
-unline markdown, blockquote are declared using fences (same as code blocks but with `>>>`)
+To format quote into its own distinct block, use the triple `>` syntax.
 
 >>>.info
 this is an info blockquote with some CSS style
@@ -113,7 +115,7 @@ If a separator/align line is found, all it preceding lines become `th`
       1. we need to go deeper
   1. back to skiped level 2
 1. back to level 1
-
+  
 </textarea>
 <output name="preview"></output>
 </div>
