@@ -35,7 +35,7 @@
   </nav>
   <div class="cols">
 
-<textarea name="code" rows="42">
+<textarea name="code" rows="42" wrap="off">
 # Inline elements
 
 | render             | code                 |
@@ -50,37 +50,36 @@
 | `code`             | `` `code` ``         |
 | <ftp://x.y/z>      | `<ftp://x.y/z>`      |
 | [my link](url)     | `[my link](url)`     |
-| ![logo](logo.svg)  | `![logo](logo.svg)` |
+| ![logo](logo.svg)  | `![logo](logo.svg)`  |
 | [![linked logo](logo.svg)](url) | `[![linked logo](logo.svg)](url)` |
 
 # Block elements
 
 ## Code
 
-Same as markdown, code nesting possible using more than 3 backtick:
-
 ````markdown
-# displayed as raw text
+# same as markdown
 ```myLang
 I am nested
 ```
+back to normal
 ````
 
 ## Quote
 
-unline markdown, blockquote are declared as multiline (just like a block of code)
-and can be nested using
+unline markdown, blockquote are declared using fences (same as code blocks but with `>>>`)
 
 >>>.info
 this is an info blockquote with some CSS style
   >>>>.warning
   this is a nested warning with optional (but welcome) indent
   >>>>
+back to the top indent
 >>>
 
 ## Table
 
-Same as markdown, but require all rows to start and end with a `|`.
+Same as markdown, but with stricter syntax: all rows must *start* and *end* with a `|`.
 
 |A 1 cell table|
 
@@ -92,17 +91,28 @@ If a separator/align line is found, all it preceding lines become `th`
 
 ## List
 
-same as markdown, but nesting is not supported, until I find a way to handle it without complexity.
+- first list item
+- same list item
 
-- first item
-- second item stay in the same list
+- new list because of new paragraph
+* new list because of type changes
++ new list because of type changes again
 
-- empty line prefixed => new list
-* type changes => new list
-+ another type =>  new list
+5. numerated list starting at 5
+2. next entry is simply incremented 
 
-2. numerated list
-2. with specific start
+- nesting example
+  - 2 space is 1 indent
+    -  even deeper
+    -  continued
+  - back to level 2
+- the end
+
+1. number nesting
+    1. dive 2 level directly
+      1. we need to go deeper
+  1. back to skiped level 2
+1. back to level 1
 
 </textarea>
 <output name="preview"></output>

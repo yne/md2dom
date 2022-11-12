@@ -61,11 +61,11 @@ export default class {
 			},
 		}, { //! unordered lists items line starts with `*`, `+` or `-`, ordered lists start with number followed by a dot
 			when: /^( *)([\*\+\-]|(?:\d+\.)) (.*)\n/,
-			open: (_, _lv, mode, body, [parent]) => {
-				const attr = { level: _lv.length, mode: mode.slice(-1), start: mode.slice(0, -1) || undefined };
-				const li = this.inline(body, elem('li'));
-				return parent.mode != attr.mode ? [elem(attr.start ? 'ol' : 'ul', attr, [li])] : parent.append(li);
-			},
+			open: (_, _lv, mode, body, [parent]) => function list(parent, attr, li) { // some bug on type change ...
+				if (parent.level === attr.level && parent.mode === attr.mode) return parent.append(li);
+				if (parent.level === undefined || parent.mode !== attr.mode) return [elem(attr.start ? 'ol' : 'ul', attr, [li])];
+				for (let i = 0; i != attr.level; i++)parent.appendChild(parent = elem(attr.start ? 'ol' : 'ul', attr, [li]))
+			} (parent, { level: _lv.length >> 1, mode: mode.slice(-1), start: mode.slice(0, -1) || undefined }, this.inline(body, elem('li'))),
 		}, { //! blank line generate a new paragraph
 			when: /^\s*\n/,
 			open: () => [elem('p')]

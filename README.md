@@ -10,7 +10,8 @@ to [`NodeList`](https://developer.mozilla.org/en-US/docs/Web/API/NodeList) parse
 ```ts
 import md2dom from "./md2dom.js";
 
-myElement.replaceChildren(...(new md2dom()).parse("Hello *world* !"));
+const nodes = (new md2dom()).parse("Hi *me* !")
+myElement.replaceChildren(...nodes);
 ```
 
 See: [demo.html](demo.html)
@@ -19,5 +20,5 @@ See: [demo.html](demo.html)
 
 This parser favor simplicity and safety over backward compatibility.
 
-- all HTML tags (including `<!-- comment -->`, `<script>`, `<a>` ...) are rendered as text.
-- no list nesting (for now) as I can't figure a clean/stateless way to do it
+- all HTML tags (`<script>`, `<!-- ...`) are rendered as plain text.
+- blockquote use same syntax as block of code
