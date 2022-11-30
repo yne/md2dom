@@ -1,0 +1,24 @@
+name: deploy
+
+on:
+  push:
+    branches-ignore:
+      - gh-pages
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '16.x'
+        registry-url: 'https://registry.npmjs.org'
+    - name: NPM
+      run: |
+        TAG=$(date +v%y.%m.%d)
+        curl -HAccept:application/vnd.github.mercy-preview+json https://api.github.com/repos/${GITHUB_REPOSITORY} |
+        jq '{name,version:"'$TAG'",main:"md2dom.js",description,homepage,author:.owner.login,license:.license.key,repository:{type:"git",url:.git_url},keywords:.topics}' > package.json
+        npm publish --access public
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
