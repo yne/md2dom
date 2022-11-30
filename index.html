@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang=en>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 8"><path d="M28,0L30,3.5L28,7L30,7L32,3.5L30,0M26,0L24,3.5L26,7L24,7L22,3.5L24,0M8,7L6,7L6,3L4,5L2,3L2,7L0,7L0,0L2,0L4,2L6,0L8,0M12,7L9,4L11,4L11,1L13,1L13,4L15,4M17,5L17,2L20,3.5"></path></svg>'>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script type=module>
+  import md2dom from "./md2dom.js";
+  import emojis from "./emoji.js";
+  const form = document.forms.demo;
+  form.code.value = localStorage.markdown_demo || form.code.value || await fetch('README.md').then(r=>r.text());
+  (form.oninput = () => form.preview.replaceChildren(...(new md2dom({emojis, newline:form.newline.checked, compact:form.compact.checked})).parse(localStorage.markdown_demo = form.code.value)))();
+</script>
+<style>
+  * {box-sizing: border-box;}
+  body {margin: 0;}
+  form>output,form>textarea { position: absolute; top: 0; max-height: 100vh;min-height: 100vh; width: 49vw; border: 0; padding: 0 2em; overflow: auto; outline: none;}
+  form>output {left: 0;}
+  form>textarea {right: 0;}
+  output pre,code { background:#0001;padding: 0 0.25em; border-radius: 0.25em; overflow: auto;}
+  output pre>code { background:none;}
+  output pre>code::before { content:attr(lang); float:right; opacity: .3;}
+  output table {border-collapse: collapse;margin: auto;}
+  output td,th { border: 1px solid;}
+  output th {background: #0001;}
+  output del {color: #800;text-decoration:none;}
+  output ins {color: #080;text-decoration:none;}
+  output p {text-align: justify;}
+  output blockquote { border-left: .2em solid;margin: 0.25em;padding-left: 0.25em;}
+  output blockquote[cite="info:"]{background-color:#DDF4;}
+  output blockquote[cite="info:"]::before{content: '🛈';float:right}
+  output blockquote[cite="warning:"]{background-color:#FEB4;}
+  output blockquote[cite="warning:"]::before{content: '⚠️';float:right}
+</style>
+
+<form name="demo">
+<output name="preview"></output>
+<textarea name="code" rows="42" wrap="off"></textarea>
+  <nav style="position: absolute;right: 5em;">
+    <label><input type="checkbox" name="newline" title="line break will appear as <br>">\n=&lt;br&gt;</label>
+    <label><input type="checkbox" name="compact" checked title="disable lazy-line behavior">compact</label>
+  </nav>
+</form>

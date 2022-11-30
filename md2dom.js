@@ -10,12 +10,18 @@ export default class {
 		}, { //! a highlighted text is surrounded with `{=` and `=}`
 			when: /\{=(.+?)=\}/g,
 			open: (e, m) => this.inline(m[1] || m[2], e.appendChild(elem("mark")))
+		}, { //! a highlighted text is surrounded with `{=` and `=}`
+			when: /~~(.+?)~~/g,
+			open: (e, m) => this.inline(m[1] || m[2], e.appendChild(elem("s")))
 		}, { //! a ins text is surrounded with a `{+` and `+}` character
 			when: /\{\+(.+?)\+\}/g,
 			open: (e, m) => this.inline(m[1], e.appendChild(elem("ins")))
-		}, { //! a sub text is surrounded with a `{-` and `-}` character
+		}, { //! a del text is surrounded with a `{-` and `-}` character
 			when: /\{-(.+?)-\}/g,
 			open: (e, m) => this.inline(m[1], e.appendChild(elem("del")))
+		}, { //! a sup text is surrounded with a `^` character
+			when: /\^(.+?)\^/g,
+			open: (e, m) => this.inline(m[1], e.appendChild(elem("sup")))
 		}, { //! a sub text is surrounded with a `~` character
 			when: /~(.+?)~/g,
 			open: (e, m) => this.inline(m[1], e.appendChild(elem("sub")))
@@ -33,7 +39,7 @@ export default class {
 			open: (e, m) => this.inline(m[1], e.appendChild(elem("a", { href: m[2] })))
 		}, { //! a link is surrounded with `<` and `>`, mail addresses are converted to `mailto:` uri
 			when: /<(.+?)>/g,
-			open: (e, m) => e.appendChild(elem("a", { href: (m[1].match('@') ? '' : 'mailto:') + m[1] }, [new Text(m[1])]))
+			open: (e, m) => e.appendChild(elem("a", { href: ((m[1].match('@') && !m[1].match('//')) ? 'mailto:' : '') + m[1] }, [new Text(m[1])]))
 		}, { //! an image starts with a `!` followed by it alt-name inside brackets, followed by it address inside parenthesis
 			when: /!\[\s*(.*?)\s*\]\((.+?)\)/g,
 			open: (e, m) => (e.appendChild(elem("img", { alt: m[1], src: m[2] })), m[1])
@@ -50,7 +56,7 @@ export default class {
 			when: /^( *>{3,})([^>\n].*)?\n([\S\s]*)\n\1\n/,
 			open: (_, _lv, cite, body) => [elem('blockquote', { cite }, [...this.parse(body)])],
 		}, { //! code blocks starts with at least 3 `` ` `` followed by an optional code language and must end with the equivalent number of `` ` ``
-			when: /^(`{3,})(.*)\n([\S\s]*)\n\1\n/,
+			when: /^(`{3,})(.*)\n([\S\s]*?)\n\1\n/,
 			open: (_, _lv, lang, body) => [elem('pre', {}, [elem('code', { lang }, [new Text(body)])])],
 		}, { //! tables lines starts and end with a `|`, a line can be a separator line `|:---:|` , otherwise it's a data line; separator prefixed line become headers
 			when: /^(?:[|].+[|]\n)+/, // /^([|] *:?-+:? *[|])$/
