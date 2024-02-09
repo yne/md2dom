@@ -27,12 +27,16 @@ See: [live rendering](//yne.fr/md2dom)
 
 | render             | code                 |
 | ------             | ----                 |
+| **emphasis**       | `**emphasis**`       |
+| __emphasis__       | `__emphasis__`       |
+| {*emphasis*}       | `{*emphasis*}`       |
+| {_strong_}         | `{_strong_}`         |
 | *strong*           | `*strong*`           |
-| _emphasis_         | `_emphasis_`         |
-| ~~strike~~         | `~~strike~~`         |
+| _strong_           | `_strong_`           |
 | {=mark=}           | `{=mark=}`           |
 | {-del-}            | `{-del-}`            |
 | {+ins+}            | `{+ins+}`            |
+| ~~strike~~         | `~~strike~~`         |
 | ~sub~              | `~sub~`              |
 | ^sup^              | `^sup^`              |
 | :+1:               | `:+1:`               |

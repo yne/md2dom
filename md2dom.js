@@ -1,12 +1,12 @@
 const elem = (tag, props = {}, ch = []) => ch.reduce((e, c) => (e.appendChild(c), e), Object.assign(document.createElement(tag), props))
 export default class {
 	inline_rules = [
-		{  //! an emphasis text is surrounded with a `_` character or a `{_` and `_}` if disambiguation is necessary
-			when: /\{_(.+?)_\}|_(.+?)_/g,
-			open: (e, m) => this.inline(m[1] || m[2], e.appendChild(elem("em")))
-		}, { //! a strong text is surrounded with a `*` character or a `{*` and `*}` if disambiguation is necessary
-			when: /\{\*(.+?)\*\}|\*(.+?)\*/g,
-			open: (e, m) => this.inline(m[1] || m[2], e.appendChild(elem("strong")))
+		{ //! a strong text is surrounded with a `*` character or a `{*` and `*}` if disambiguation is necessary
+			when: /\{\*(.+?)\*\}|__(.+?)__|\*\*(.+?)\*\*/g,
+			open: (e, m) => this.inline(m[1] || m[2] || m[3], e.appendChild(elem("strong")))
+		}, {  //! an emphasis text is surrounded with a `_` character or a `{_` and `_}` if disambiguation is necessary
+			when: /\{_(.+?)_\}|_(.+?)_|\*(.+?)\*/g,
+			open: (e, m) => this.inline(m[1] || m[2] || m[3], e.appendChild(elem("em")))
 		}, { //! a highlighted text is surrounded with `{=` and `=}`
 			when: /\{=(.+?)=\}/g,
 			open: (e, m) => this.inline(m[1] || m[2], e.appendChild(elem("mark")))
@@ -51,7 +51,7 @@ export default class {
 			open: () => [elem('hr'), elem('p')],// add a <p> since it can't accept continuation lines
 		}, { //! headers lines starts with 1 to 6 `#` followed by a space, followed by the title
 			when: /^(#{1,6})[ \t]+(.+?)\n/,
-			open: (_, { length }, header) => [this.inline(header, elem(`h${length}`, {id:this.prefix+header.toLowerCase().replaceAll(/[^-\s\p{L}\p{M}\p{N}]/gu, '').replaceAll(/[-\s]+/g,'-')}))]
+			open: (_, { length }, header) => [this.inline(header, elem(`h${length}`, { id: this.prefix + header.toLowerCase().replaceAll(/[^-\s\p{L}\p{M}\p{N}]/gu, '').replaceAll(/[-\s]+/g, '-') }))]
 		}, { //! citations blocks starts with at least 3 `>` followed by an optional citation text and must end with the equivalent number of `>` on another line
 			when: /^( *>{3,})([^>\n].*)?\n([\S\s]*)\n\1\n/,
 			open: (_, _lv, cite, body) => [elem('blockquote', { cite }, [...this.parse(body)])],
@@ -71,14 +71,14 @@ export default class {
 				if (parent.level === attr.level && parent.mode === attr.mode) return parent.append(li);
 				if (parent.level === undefined || parent.mode !== attr.mode) return [elem(attr.start ? 'ol' : 'ul', attr, [li])];
 				for (let i = 0; i != attr.level; i++)parent.appendChild(parent = elem(attr.start ? 'ol' : 'ul', attr, [li]))
-			} (parent, { level: _lv.length >> 1, mode: mode.slice(-1), start: mode.slice(0, -1) || undefined }, this.inline(body, elem('li'))),
+			}(parent, { level: _lv.length >> 1, mode: mode.slice(-1), start: mode.slice(0, -1) || undefined }, this.inline(body, elem('li'))),
 		}, { //! blank line generate a new paragraph
 			when: /^\s*\n/,
 			open: () => [elem('p')]
 		}
 	];
 	constructor(options = {}) {
-		Object.assign(this, { newline: true, compact: true , prefix: ''}, options);
+		Object.assign(this, { newline: true, compact: true, prefix: '' }, options);
 	}
 	inline(line, parent) {
 		let pos = 0;
