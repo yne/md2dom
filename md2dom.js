@@ -95,6 +95,8 @@ export default class {
 	parse(lines) {
 		let block_rule, last_match, last_block;
 		const parent = elem('template', {}, last_block = [elem('p')]); // default first block
+		if (lines.includes('\r'))
+			lines = lines.replaceAll('\r',''); // UNIX newline only
 		if (!lines.endsWith('\n'))
 			lines += '\n'; // UNIX principle: all line must end with \n
 		do
