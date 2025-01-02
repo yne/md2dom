@@ -27,7 +27,7 @@ export default class {
 			open: (e, m) => this.inline(m[1], e.appendChild(elem("sub")))
 		}, { //! a smiley text is surrounded with a `:` character
 			when: /:(.+?):/g,
-			open: (e, m) => (e.appendChild((this.emojis || [])[m[1]] ? elem("span", { title: m[1] }, [new Text(this.emojis[m[1]])]) : new Text(m[1])), m[1])
+			open: (e, m) => (e.appendChild((this.emojis || [])[m[1]] ? elem("span", { title: m[1] }, [new Text(this.emojis[m[1]])]) : new Text(m[0])), m[1])
 		}, { //! a code text is surrounded with a `` ` ``, or 2 if needed because text already contain a single backtick 
 			when: /(`{1,2})(.+?)\1/g,
 			open: (e, m) => (e.appendChild(elem("code", {}, [new Text(m[2])])), m[1])
