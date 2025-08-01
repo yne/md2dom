@@ -1,46 +1,54 @@
+/**
+ * @template {keyof HTMLElementTagNameMap} T
+ * @param {T} tagName
+ * @param {Partial<HTMLElementTagNameMap[T]>} props
+ * @param {(Node|String)[]} ch
+ * @param {{}} attr
+ * @returns {HTMLElementTagNameMap[T]}
+ */
 const elem = (tag, props = {}, ch = []) => ch.reduce((e, c) => (e.appendChild(c), e), Object.assign(document.createElement(tag), props))
 export default class {
 	inline_rules = [
-		{ //! a strong text is surrounded with a `*` character or a `{*` and `*}` if disambiguation is necessary
-			when: /\{\*(.+?)\*\}|__(.+?)__|\*\*(.+?)\*\*/g,
+		{ //! strong text is surrounded with a single `*`or `_` character or a `{*` and `*}` if in middle of a word
+			when: /\{\*(.+?)\*\}|\b__(.+?)__\b|(?<![\w*])\*\*(.+?)\*\*(?![\w*])/g,
 			open: (e, m) => this.inline(m[1] || m[2] || m[3], e.appendChild(elem("strong")))
-		}, {  //! an emphasis text is surrounded with a `_` character or a `{_` and `_}` if disambiguation is necessary
-			when: /\{_(.+?)_\}|_(.+?)_|\*(.+?)\*/g,
+		}, {  //! emphasis text is surrounded with a double `*`or `_` character or a `{_` and `_}` if in middle of a word
+			when: /\{_(.+?)_\}|\b_([^_]+?)_\b|(?<![\w*])\*([^*]+?)\*(?![\w*])/g,
 			open: (e, m) => this.inline(m[1] || m[2] || m[3], e.appendChild(elem("em")))
-		}, { //! a highlighted text is surrounded with `{=` and `=}`
+		}, { //! highlighted text is surrounded with `{=` and `=}`
 			when: /\{=(.+?)=\}/g,
 			open: (e, m) => this.inline(m[1] || m[2], e.appendChild(elem("mark")))
-		}, { //! a highlighted text is surrounded with `{=` and `=}`
-			when: /~~(.+?)~~/g,
+		}, { //! striked text is surrounded with `{~` and `~}` double tild `~~`
+			when: /\{~(.+?)~\}|(?<![\w~])~~(.+?)~~(?![\w~])/g,
 			open: (e, m) => this.inline(m[1] || m[2], e.appendChild(elem("s")))
-		}, { //! a ins text is surrounded with a `{+` and `+}` character
+		}, { //! inserted text is surrounded with a `{+` and `+}` character
 			when: /\{\+(.+?)\+\}/g,
 			open: (e, m) => this.inline(m[1], e.appendChild(elem("ins")))
-		}, { //! a del text is surrounded with a `{-` and `-}` character
+		}, { //! deleted text is surrounded with a `{-` and `-}` character
 			when: /\{-(.+?)-\}/g,
 			open: (e, m) => this.inline(m[1], e.appendChild(elem("del")))
-		}, { //! a sup text is surrounded with a `^` character
-			when: /\^(.+?)\^/g,
-			open: (e, m) => this.inline(m[1], e.appendChild(elem("sup")))
-		}, { //! a sub text is surrounded with a `~` character
-			when: /~(.+?)~/g,
+		}, { //! sup text is surrounded with a `^` character
+			when: /\{\^(.+?)\^\}|(?<![\w^])\^(.+?)\^(?![\w^])/g,
+			open: (e, m) => this.inline(m[1] || m[2], e.appendChild(elem("sup")))
+		}, { //! sub text is surrounded with a `~` character
+			when: /(?<![\w~])~(.+?)~(?![\w~])/g,
 			open: (e, m) => this.inline(m[1], e.appendChild(elem("sub")))
-		}, { //! a smiley text is surrounded with a `:` character
+		}, { //! smiley is surrounded with a `:` character
 			when: /:(.+?):/g,
 			open: (e, m) => (e.appendChild((this.emojis || [])[m[1]] ? elem("span", { title: m[1] }, [new Text(this.emojis[m[1]])]) : new Text(m[0])), m[1])
-		}, { //! a code text is surrounded with a `` ` ``, or 2 if needed because text already contain a single backtick 
+		}, { //! code text is surrounded with a `` ` ``, or 2 if needed because text already contain a single backtick
 			when: /(`{1,2})(.+?)\1/g,
 			open: (e, m) => (e.appendChild(elem("code", {}, [new Text(m[2])])), m[1])
 		}, { // manual a+img rule to avoid balanced regexp on link item
 			when: /\[\s*!\[(.*?)\]\((.+?)\)\s*\]\((.+?)\)/g,
 			open: (e, m) => (e.appendChild(elem("a", { href: m[3] }, [elem("img", { alt: m[1], src: m[2] })])), m[1])
-		}, { //! a named link starts with it name inside brackets, followed by it address inside parenthesis
+		}, { //! named link starts with it name inside brackets, followed by it address inside parenthesis
 			when: /\[(.*?)\]\((.+?)\)/g,
 			open: (e, m) => this.inline(m[1], e.appendChild(elem("a", { href: m[2] })))
-		}, { //! a link is surrounded with `<` and `>`, mail addresses are converted to `mailto:` uri
+		}, { //! link is surrounded with `<` and `>`, mail addresses are converted to `mailto:` uri
 			when: /<(.+?)>/g,
 			open: (e, m) => e.appendChild(elem("a", { href: ((m[1].match('@') && !m[1].match('//')) ? 'mailto:' : '') + m[1] }, [new Text(m[1])]))
-		}, { //! an image starts with a `!` followed by it alt-name inside brackets, followed by it address inside parenthesis
+		}, { //! image starts with a `!` followed by it alt-name inside brackets, followed by it address inside parenthesis
 			when: /!\[\s*(.*?)\s*\]\((.+?)\)/g,
 			open: (e, m) => (e.appendChild(elem("img", { alt: m[1], src: m[2] })), m[1])
 		},
@@ -96,7 +104,7 @@ export default class {
 		let block_rule, last_match, last_block;
 		const parent = elem('template', {}, last_block = [elem('p')]); // default first block
 		if (lines.includes('\r'))
-			lines = lines.replaceAll('\r',''); // UNIX newline only
+			lines = lines.replaceAll('\r', ''); // UNIX newline only
 		if (!lines.endsWith('\n'))
 			lines += '\n'; // UNIX principle: all line must end with \n
 		do

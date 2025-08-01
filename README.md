@@ -25,27 +25,33 @@ See: [live rendering](//yne.fr/md2dom)
 
 ### Inline elements
 
-| render             | code                 |
+| render             | Markdown             |
 | ------             | ----                 |
-| **emphasis**       | `**emphasis**`       |
-| __emphasis__       | `__emphasis__`       |
-| {*emphasis*}       | `{*emphasis*}`       |
-| {_strong_}         | `{_strong_}`         |
-| *strong*           | `*strong*`           |
-| _strong_           | `_strong_`           |
-| {=mark=}           | `{=mark=}`           |
-| {-del-}            | `{-del-}`            |
-| {+ins+}            | `{+ins+}`            |
-| ~~strike~~         | `~~strike~~`         |
-| ~sub~              | `~sub~`              |
-| ^sup^              | `^sup^`              |
+| *strong word*      | `*strong word*`      |
+| _strong word_      | `_strong word_`      |
+| **emphasis word**  | `**emphasis word**`  |
+| __emphasis word__  | `__emphasis word__`  |
+| ~~strike word~~    | `~~strike word~~`    |
 | :+1:               | `:+1:`               |
-| `code`             | `` `code` ``         |
+| `inline code`      | `` `inline code` ``  |
 | <ftp://user@x.y/z> | `<ftp://user@x.y/z>` |
 | <user@mail.com>    | `<user@mail.com>`    |
 | [my link](url)     | `[my link](url)`     |
 | ![logo](logo.svg)  | `![logo](logo.svg)`  |
 | [![linked logo](logo.svg)](url) | `[![linked logo](logo.svg)](url)` |
+
+CommonMark syntax are also supported for when precise formating (middle of a word) is needed
+
+| render             | CommonMark           |
+| ------             | ----                 |
+| st{_ron_}g         | `st{_ron_}g`         |
+| em{*pha*}sis       | `em{*pha*}sis`       |
+| high{=li=}ght      | `high{=li=}ght`      |
+| de{-le-}tion       | `de{-le-}tion`       |
+| in{+ser+}tion      | `in{+ser+}tion`      |
+| st{~ri~}ke         | `st{~ri~}ke`         |
+| ~sub~              | `~sub~`              |
+| ^sup^              | `^sup^`              |
 
 ### Block elements
 
