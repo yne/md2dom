@@ -8,22 +8,23 @@
   import emojis from "./emoji.js";
   const form = document.forms.demo;
   form.code.value = localStorage.markdown_demo || form.code.value || await fetch('README.md').then(r=>r.text());
-  (form.oninput = () => form.preview.replaceChildren(...(new md2dom({emojis, newline:form.newline.checked, compact:form.compact.checked})).parse(localStorage.markdown_demo = form.code.value)))();
+  (form.oninput = () => form.preview.replaceChildren(...(new md2dom({emojis})).parse(localStorage.markdown_demo = form.code.value)))();
 </script>
 <style>
   * {box-sizing: border-box;}
   body {margin: 0;}
   form>output,form>textarea { position: absolute; top: 0; max-height: 100vh;min-height: 100vh; width: 49vw; border: 0; padding: 0 2em; overflow: auto; outline: none;}
-  form>output {left: 0;}
-  form>textarea {right: 0;}
-  output pre,code { background:#0001;padding: 0 0.25em; border-radius: 0.25em; overflow: auto;}
+  form>textarea {left: 0;}
+  form>output {right: 0;}
+  output pre,output code { background:#0001;padding: 0 0.25em; border-radius: 0.25em; overflow: auto;}
   output pre>code { background:none;}
   output pre>code::before { content:attr(lang); float:right; opacity: .3;}
   output table {border-collapse: collapse;margin: auto;}
-  output td,th { border: 1px solid;}
+  output td,output th { border: 1px solid;}
   output th {background: #0001;}
   output del {color: #800;text-decoration:none;}
   output ins {color: #080;text-decoration:none;}
+  output ul, output ol{padding-top: .5em;}
   output p {text-align: justify;}
   output blockquote { border-left: .2em solid;margin: 0.25em;padding-left: 0.25em;}
   output blockquote[cite="info:"]{background-color:#DDF4;}
@@ -35,8 +36,4 @@
 <form name="demo">
 <output name="preview"></output>
 <textarea name="code" rows="42" wrap="off"></textarea>
-  <nav style="position: absolute;right: 5em;">
-    <label><input type="checkbox" name="newline" title="line break will appear as <br>">\n=&lt;br&gt;</label>
-    <label><input type="checkbox" name="compact" checked title="disable lazy-line behavior">compact</label>
-  </nav>
 </form>

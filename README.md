@@ -57,25 +57,23 @@ CommonMark syntax are also supported for when precise formating (middle of a wor
 
 #### Code
 
-To format code into its own distinct block, use the triple ``` syntax.
+To format code into its own distinct block, use at least three ``` syntax.
 
+````
 ```prng.c
 int getRandomNumber() {
   return 4; // chosen by fair dice roll
 }
 ```
+````
 
 #### Quote
 
-To format quote into its own distinct block, use the triple `>` syntax.
+> blockquote starts with `>`
+and can span on
+multiple lines
 
->>>info:
-this is an info blockquote with some CSS style
-  >>>>warning:
-  this is a nested warning with optional (but welcome) indent
-  >>>>
-back to the info level
->>>
+> another distinct blockquote
 
 #### Table
 
